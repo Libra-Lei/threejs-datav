@@ -3,7 +3,7 @@
  * @Author: 幺五六
  * @Date: 2020-07-29 15:44:02
  * @LastEditors: 幺五六
- * @LastEditTime: 2020-07-29 15:44:02
+ * @LastEditTime: 2020-07-31 14:16:53
  */ 
 import * as THREE from 'three';
 
@@ -31,6 +31,11 @@ export default class ThreePoints {
 
     // 窗口尺寸变化监听
     window.addEventListener('resize', this._onWindowResize.bind(this), false);
+  }
+
+  render() {
+    // if (!this.renderer.autoClear) this.renderer.clear();
+    this.renderer.render(this.scene, this.camera);
   }
 
   /**
@@ -62,10 +67,14 @@ export default class ThreePoints {
     // 渲染器
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
+      // canvas是否包含alpha (透明度)
       alpha: true,
-      antialias: true,
-      autoClear: true
+      // 抗锯齿
+      antialias: true
     });
+    // 定义渲染器是否在渲染每一帧之前自动清除其输出
+    this.renderer.autoClear = true;
+    // 设置设备像素比。通常用于避免HiDPI设备上绘图模糊
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(this.WIDTH, this.HEIGHT);
     // 渲染背景颜色同雾化的颜色
