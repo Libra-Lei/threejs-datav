@@ -3,7 +3,7 @@
  * @Author: 幺五六
  * @Date: 2020-07-31 13:59:07
  * @LastEditors: 幺五六
- * @LastEditTime: 2020-07-31 16:44:34
+ * @LastEditTime: 2020-07-31 16:59:03
  */ 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
@@ -64,13 +64,13 @@ export default class BaseRender {
     // 舞台（场景、渲染器、灯光）已经准备就绪，接下来就是 “演员”（物体）登场（物体加入场景scene）
 
     // 创建几何体属性
-    const geometry = new THREE.BoxBufferGeometry(10, 10, 10);
+    const geometry = new THREE.BoxBufferGeometry(20, 20, 20);
     // 创建几何体材质 -- 我把它理解为 “皮肤”，就是游戏里要花钱买的那种，哈哈
     const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
     // 给“几何属性”（geometry）穿上 好看的 “皮肤”（material） --> 一个物体就诞生了
     const box = new THREE.Mesh(geometry, material);
-    // 设置一下这个正方体的倾斜角度，便于看出来是个3D物体
-    box.rotation.set(2, 2, 2);
+    // 设置一下这个正方体的旋转角度，便于看出来是个3D物体
+    box.rotation.set(2, 0, 2);
     // 将物体加入 场景（scene）中；
     this.scene.add(box);
   }
@@ -158,7 +158,7 @@ export default class BaseRender {
    * 创建灯光系统
    */
   _setLights() {
-    // 创建环境光
+    // 创建环境光 -- 没有方向，均匀照亮场景中所有物体
     const ambientLight = new THREE.AmbientLight(0xdc8874, .2);
     // 将环境光 加入场景
     this.scene.add(ambientLight);
