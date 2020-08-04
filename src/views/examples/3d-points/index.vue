@@ -3,12 +3,14 @@
  * @Author: 幺五六
  * @Date: 2020-07-29 14:29:14
  * @LastEditors: 幺五六
- * @LastEditTime: 2020-07-31 13:56:39
+ * @LastEditTime: 2020-08-03 11:37:34
 --> 
 <template>
   <div class="w-full h-full relative">
     <div class="fixed relative right-0" id="stats-container"></div>
-    <canvas class="w-full h-full" id="points-3d"></canvas>
+    <div class="w-full h-full" id="canvas-container">
+      <canvas class="w-full h-full" id="points-3d"></canvas>
+    </div>
   </div>
 </template>
 
@@ -25,8 +27,12 @@ export default {
   },
   methods: {
     init() {
-      const threePoints = new ThreePoints(document.getElementById('points-3d'));
+      const threePoints = new ThreePoints(
+        document.getElementById('points-3d'),
+        document.getElementById('canvas-container')
+      );
       threePoints.init();
+      threePoints.addObject();
 
       // 加上性能监控
       const stats = new Stats();

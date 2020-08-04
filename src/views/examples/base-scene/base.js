@@ -3,7 +3,7 @@
  * @Author: 幺五六
  * @Date: 2020-07-31 13:59:07
  * @LastEditors: 幺五六
- * @LastEditTime: 2020-07-31 16:59:03
+ * @LastEditTime: 2020-08-03 11:29:23
  */ 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
@@ -63,7 +63,7 @@ export default class BaseRender {
   _addBox() {
     // 舞台（场景、渲染器、灯光）已经准备就绪，接下来就是 “演员”（物体）登场（物体加入场景scene）
 
-    // 创建几何体属性
+    // 创建模型（几何体属性）：顶点位置，面信息，颜色等
     const geometry = new THREE.BoxBufferGeometry(20, 20, 20);
     // 创建几何体材质 -- 我把它理解为 “皮肤”，就是游戏里要花钱买的那种，哈哈
     const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
