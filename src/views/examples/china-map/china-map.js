@@ -3,7 +3,7 @@
  * @Author: 幺五六
  * @Date: 2020-07-29 11:11:10
  * @LastEditors: 幺五六
- * @LastEditTime: 2020-07-29 15:42:04
+ * @LastEditTime: 2020-08-18 17:56:05
  */ 
 import * as THREE from 'three';
 // import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
@@ -22,6 +22,9 @@ import * as d3geo from 'd3-geo'
 const TWEEN = require('@tweenjs/tween.js/dist/tween.cjs')
 
 import { loadOBJ } from '../../../lib/model-loader'
+
+// shader 飞线
+import PointsFlyLine from './fly-line'
 
 export class Map3D {
   constructor(elementTo) {
@@ -137,6 +140,43 @@ export class Map3D {
     this.scene.add(this._map);
     // 边缘加发光特效
     this._outlinePass.selectedObjects = [this._map];
+  }
+
+  // shader 飞线
+  initShaderFlyLine() {
+    // TODO: 筛选地理坐标渲染飞线
+    const targets = ['山西省', '湖北省', '新疆维吾尔自治区', '辽宁省', '甘肃省'];
+    const flyStart = this._map.children.find(x => x.properties.name === '北京市').properties._centroid;
+    const flyEnd = this._map.children.filter(x => targets.findIndex(y => y === x.properties.name) > -1).map(x => x.properties._centroid);
+    const startPoint = { x: flyStart[0], y: 4.01, z: flyStart[1] };
+    const endPoint = { x: flyEnd[0][0], y: 4.01, z: flyEnd[0][1] };
+
+    // 飞线中点坐标
+    const middleCurvePositionX = (startPoint.x + endPoint.x) / 2;
+    const middleCurvePositionY = 10;
+    const middleCurvePositionZ = (startPoint.z + endPoint.z) / 2;
+
+    const vecs = [
+      new THREE.Vector3(startPoint.x, startPoint.y, startPoint.z),
+      new THREE.Vector3(
+        middleCurvePositionX,
+        middleCurvePositionY,
+        middleCurvePositionZ
+      ),
+      new THREE.Vector3(endPoint.x, endPoint.y, endPoint.z),
+    ]
+
+    const fly = new PointsFlyLine(vecs, 10, 10, new THREE.Color('rgb(115,103,240)'));
+
+    this.scene.add(fly._particleSystem);
+    // fly.start();
+    console.log('fly._particleSystem: ', fly._particleSystem);
+
+
+
+    // flyEnd.forEach(item => {
+    //   const endPoint = { x: item[0], y: 4.01, z: item[1] };
+    // })
   }
   
   /**

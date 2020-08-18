@@ -3,7 +3,7 @@
  * @Author: 幺五六
  * @Date: 2020-07-29 10:35:50
  * @LastEditors: 幺五六
- * @LastEditTime: 2020-07-29 15:42:54
+ * @LastEditTime: 2020-08-18 17:02:46
 --> 
 <template>
   <div class="h-full w-full relative" id="container">
@@ -57,7 +57,8 @@ export default {
       const map3D = new Map3D(document.getElementById('canvas'));
       map3D.init();
       map3D.initMap(chinaJson);
-      map3D.initFlyLine();
+      // map3D.initFlyLine();
+      map3D.initShaderFlyLine();
       // 加上性能监控
       const stats = new Stats();
       stats.dom.style.right = 0;
