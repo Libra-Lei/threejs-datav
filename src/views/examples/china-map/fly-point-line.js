@@ -3,7 +3,7 @@
  * @Author: 幺五六
  * @Date: 2020-08-19 13:25:38
  * @LastEditors: 幺五六
- * @LastEditTime: 2020-08-19 13:54:08
+ * @LastEditTime: 2020-08-19 17:55:58
  */
 
 
@@ -103,6 +103,17 @@ export default class FlyPointsLine {
     flyline.maxx = end.x;
 
     this._lineGroup.push(flyline);
+  }
+
+  /**
+   * 批量添加 飞线
+   * @param {array} positions [{ start: {x, y, z}, end: {x, y, z} }]
+   * @param {object} colorFrom 颜色 {r, g, b}
+   * @param {object} colorTo 颜色 {r, g, b}
+   * @param {number} num 粒子曲线的分段数量
+   */
+  addLineBatch(positions, colorFrom, colorTo, num) {
+    // TODO:
   }
 
   /**
