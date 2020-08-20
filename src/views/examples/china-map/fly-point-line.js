@@ -3,7 +3,7 @@
  * @Author: 幺五六
  * @Date: 2020-08-19 13:25:38
  * @LastEditors: 幺五六
- * @LastEditTime: 2020-08-19 17:55:58
+ * @LastEditTime: 2020-08-20 15:48:53
  */
 
 
@@ -58,7 +58,11 @@ const fs = `
 
 export default class FlyPointsLine {
   constructor() {
-    this._lineGroup = [];
+    this._lineGroup = new THREE.Group;
+  }
+  
+  getLineGroup() {
+    return this._lineGroup;
   }
   
   /**
@@ -67,9 +71,8 @@ export default class FlyPointsLine {
    * @param {object} end 飞线终点坐标 {x, y, z}
    * @param {object} colorFrom 颜色 {r, g, b}
    * @param {object} colorTo 颜色 {r, g, b}
-   * @param {number} num 粒子曲线的分段数量
    */
-  addLine(start, end, colorFrom, colorTo, num) {
+  addLine(start, end, colorFrom, colorTo) {
     colorFrom = colorFrom || { r: 0.0, g: 0.0, b: 0.0 };
     colorTo = colorTo || { r: 1.0, g: 1.0, b: 1.0 };
 
@@ -82,15 +85,19 @@ export default class FlyPointsLine {
       new THREE.Vector3(middleCurveX, middleCurveY + 10, middleCurveZ), // 第二个控制点
       new THREE.Vector3(end.x, end.y, end.z) // 终点
     );
+
     // 构建几何体 --> 三维三次贝塞尔曲线
-    const points = curve.getPoints(num);
+    const num = Math.ceil(Math.sqrt(Math.pow((end.x - start.x), 2) + Math.pow((end.z - start.z), 2)));
+    console.log('num: ', num);
+    const points = curve.getPoints(Math.pow(num, 2));
+
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     // 构建 shader 材质
     const material = this._createMaterial();
     // 创建 点
     const flyline = new THREE.Points(geometry, material);
 
-    flyline.material.uniforms.time.value = start.x;
+    flyline.material.uniforms.time.value = 0; // start.x;
     flyline.material.uniforms.colorf = {
       type:'v3',
       value:new THREE.Vector3(colorFrom.r, colorFrom.g, colorFrom.b)
@@ -99,10 +106,11 @@ export default class FlyPointsLine {
       type:'v3',
       value:new THREE.Vector3(colorTo.r, colorTo.g, colorTo.b)            
     };
-    flyline.minx = start.x;
-    flyline.maxx = end.x;
-
-    this._lineGroup.push(flyline);
+    flyline.minx = 0; // start.x;
+    flyline.maxx = num; // end.x;
+    flyline.step = num / (50 * (num / 39));
+    flyline.direction = (end.x - start.x) > 0 ? 0 : 1;
+    this._lineGroup.add(flyline);
   }
 
   /**
@@ -110,10 +118,12 @@ export default class FlyPointsLine {
    * @param {array} positions [{ start: {x, y, z}, end: {x, y, z} }]
    * @param {object} colorFrom 颜色 {r, g, b}
    * @param {object} colorTo 颜色 {r, g, b}
-   * @param {number} num 粒子曲线的分段数量
    */
-  addLineBatch(positions, colorFrom, colorTo, num) {
-    // TODO:
+  addLineBatch(positions, colorFrom, colorTo) {
+    if (!positions || !positions.length) return;
+    positions.forEach(position => {
+      this.addLine(position.start, position.end, colorFrom, colorTo);
+    });
   }
 
   /**

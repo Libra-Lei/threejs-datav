@@ -3,16 +3,13 @@
  * @Author: 幺五六
  * @Date: 2020-07-29 11:11:10
  * @LastEditors: 幺五六
- * @LastEditTime: 2020-08-18 17:56:05
+ * @LastEditTime: 2020-08-20 16:06:15
  */ 
 import * as THREE from 'three';
 // import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
-import { Line2 } from 'three/examples/jsm/lines/Line2';
-import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial';
-import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry';
 
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js';
@@ -24,7 +21,8 @@ const TWEEN = require('@tweenjs/tween.js/dist/tween.cjs')
 import { loadOBJ } from '../../../lib/model-loader'
 
 // shader 飞线
-import PointsFlyLine from './fly-line'
+import FlyLine2 from './fly-line2'
+import FlyPointsLine from './fly-point-line'
 
 export class Map3D {
   constructor(elementTo) {
@@ -38,6 +36,8 @@ export class Map3D {
     this._stars = null; // 星空
     this._outlinePass = null; // 发光线
     this._outlinePassBox = null; // 发光线 --> 用于柱子
+
+    this._flyLinegroup = { children: [] }; // shader 飞线
   }
   
   /**
@@ -84,6 +84,28 @@ export class Map3D {
     this._stars.rotation.y += 0.001;
     // this.control.update();
     TWEEN.update();
+
+    // 飞线动画
+    if(this._flyLinegroup.children.length){
+      for(let i = 0; i < this._flyLinegroup.children.length; i++){
+        let flyline = this._flyLinegroup.children[i];
+        if(flyline && flyline.material.uniforms){
+          let time = flyline.material.uniforms.time.value;
+          let size = flyline.material.uniforms.size.value;
+          if (flyline.direction) {
+            if(time > flyline.maxx){
+              flyline.material.uniforms.time.value = flyline.minx - size;
+            }
+            flyline.material.uniforms.time.value += flyline.step;
+          } else {
+            if(time < (flyline.minx - size)){
+              flyline.material.uniforms.time.value = flyline.maxx + size;
+            }
+            flyline.material.uniforms.time.value -= flyline.step;
+          }
+        }
+      }
+    }
     this.renderer.render(this.scene, this.camera);
     this._composer.render();
   }
@@ -144,75 +166,43 @@ export class Map3D {
 
   // shader 飞线
   initShaderFlyLine() {
-    // TODO: 筛选地理坐标渲染飞线
     const targets = ['山西省', '湖北省', '新疆维吾尔自治区', '辽宁省', '甘肃省'];
     const flyStart = this._map.children.find(x => x.properties.name === '北京市').properties._centroid;
     const flyEnd = this._map.children.filter(x => targets.findIndex(y => y === x.properties.name) > -1).map(x => x.properties._centroid);
     const startPoint = { x: flyStart[0], y: 4.01, z: flyStart[1] };
-    const endPoint = { x: flyEnd[0][0], y: 4.01, z: flyEnd[0][1] };
-
-    // 飞线中点坐标
-    const middleCurvePositionX = (startPoint.x + endPoint.x) / 2;
-    const middleCurvePositionY = 10;
-    const middleCurvePositionZ = (startPoint.z + endPoint.z) / 2;
-
-    const vecs = [
-      new THREE.Vector3(startPoint.x, startPoint.y, startPoint.z),
-      new THREE.Vector3(
-        middleCurvePositionX,
-        middleCurvePositionY,
-        middleCurvePositionZ
-      ),
-      new THREE.Vector3(endPoint.x, endPoint.y, endPoint.z),
-    ]
-
-    const fly = new PointsFlyLine(vecs, 10, 10, new THREE.Color('rgb(115,103,240)'));
-
-    this.scene.add(fly._particleSystem);
-    // fly.start();
-    console.log('fly._particleSystem: ', fly._particleSystem);
-
-
-
-    // flyEnd.forEach(item => {
-    //   const endPoint = { x: item[0], y: 4.01, z: item[1] };
-    // })
-  }
-  
-  /**
-   * 初始化飞线内容
-   */
-  initFlyLine() {
-    // TODO: 筛选地理坐标渲染飞线
-    const targets = ['山西省', '湖北省', '新疆维吾尔自治区', '辽宁省', '甘肃省'];
-    const flyStart = this._map.children.find(x => x.properties.name === '北京市').properties._centroid;
-    const flyEnd = this._map.children.filter(x => targets.findIndex(y => y === x.properties.name) > -1).map(x => x.properties._centroid);
-
-    const startPoint = { x: flyStart[0], y: 4.01, z: flyStart[1] };
-    const lineGroup = new THREE.Group();
-    
     // 存储飞线坐标点，用于添加地理标识
-    const points = [];
+    const points = [], flyPositions = [];
     points.push(startPoint);
-
-    // 光柱：：
-    // const boxGroup = new THREE.Group();
-    // boxGroup.add(this._buildLightBox(startPoint));
     flyEnd.forEach(item => {
       const endPoint = { x: item[0], y: 4.01, z: item[1] };
-      const heightLimit = 10;
-      const flyTime = 4000;
-      const lineStyle = { color: 'rgb(115,103,240)', linewidth: 3 };
-      const aCurve = this._buildFlyLine(startPoint, endPoint, heightLimit, flyTime, lineStyle);
-      lineGroup.add(aCurve);
-
       points.push(endPoint);
-
-      // const box = this._buildLightBox(endPoint);
-      // boxGroup.add(box);
+      flyPositions.push({ start: startPoint, end: endPoint });
     })
-    this.scene.add(lineGroup);
 
+    // shader 飞线
+    const fly = new FlyPointsLine();
+    fly.addLineBatch(flyPositions, { r: 0.663, g: 0.98, b: 0.6 }, { r: 0.208, g: 0.623, b: 0.697});
+    // fly.addLine(flyPositions[4].start, flyPositions[4].end, { r: 0.663, g: 0.98, b: 0.6 }, { r: 0.208, g: 0.623, b: 0.697})
+    this._flyLinegroup = fly.getLineGroup();
+
+    // 基础 Line2 飞线
+    const flyLine2 = new FlyLine2(TWEEN);
+    flyLine2.addLineBatch(flyPositions, 2000, { color: 'rgb(255,255,255)', linewidth: 3 });
+    const flyLine2Group = flyLine2.getLineGroup();
+
+    this.scene.add(flyLine2Group);
+    this.scene.add(this._flyLinegroup);
+    
+    // 添加风机模型
+    this._addTurbineModel(points);
+  }
+
+
+  /**
+   * 添加风机模型
+   * @param {array} points [{x, y, z}]
+   */
+  _addTurbineModel(points) {
     // 将飞线坐标点加入风机模型
     loadOBJ('/3d/wind-turbine2.obj', '').then(obj => {
       points.forEach(point => {
@@ -244,70 +234,6 @@ export class Map3D {
     const box = new THREE.Mesh(geometry, material);
     box.position.set(point.x, height / 2 + point.y, point.z);
     return box;
-  }
-  
-  /**
-   * 构建飞线
-   * @param startPoint 起始坐标
-   * @param endPoint 结束坐标
-   * @param heightLimit 飞线顶点高度（这里就是起点和终点中间坐标的高度）
-   * @param flyTime 动画飞行时间
-   * @param lineStyle 飞线样式
-   */
-  _buildFlyLine(startPoint, endPoint, heightLimit, flyTime, lineStyle) {
-    // 飞线中点坐标
-    const middleCurvePositionX = (startPoint.x + endPoint.x) / 2;
-    const middleCurvePositionY = heightLimit;
-    const middleCurvePositionZ = (startPoint.z + endPoint.z) / 2;
-
-    // Catmull-Rom 算法的三维平滑曲线
-    const curveData = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(startPoint.x, startPoint.y, startPoint.z),
-      new THREE.Vector3(
-        middleCurvePositionX,
-        middleCurvePositionY,
-        middleCurvePositionZ
-      ),
-      new THREE.Vector3(endPoint.x, endPoint.y, endPoint.z),
-    ]);
-    // 将曲线划分成的段数 --> 这里是 50 + 1 段
-    const curveModelData = curveData.getPoints(50);
-
-    const lineGeometry = new LineGeometry();
-    const temp = curveModelData.slice(0, 1).map(vector3 => { return [vector3.x, vector3.y, vector3.z] });
-    lineGeometry.setPositions(temp.reduce((pre, curr) => pre.concat(curr), []));
-
-    const lineMaterial = new LineMaterial({
-      color: lineStyle.color,
-      linewidth: lineStyle.linewidth, // in pixels
-      dashed: false,
-      opacity: 0.7
-    });
-    const curve = new Line2(lineGeometry, lineMaterial);
-    //下面这句代码很关键，不然图形画不出来
-    lineMaterial.resolution.set(window.innerWidth, window.innerHeight);
-
-    // // 补间动画 --> Tweenjs
-    new TWEEN.Tween({ y: 1 })
-      .to(
-        { y: 50 },
-        flyTime
-      )
-      .onUpdate(tweenHandler)
-      .start();
-    return curve;
-
-    // 动画更新回调
-    function tweenHandler() {
-      const endPointIndex = Math.ceil(this._object.y);
-      const curvePartialData = new THREE.CatmullRomCurve3(
-        curveModelData.slice(0, endPointIndex)
-      );
-      const temp1 = curvePartialData.getPoints(50).map(vector3 => { return [vector3.x, vector3.y, vector3.z] });
-      curve.geometry.setPositions(temp1.reduce((pre, curr) => pre.concat(curr), []));
-
-      curve.geometry.verticesNeedUpdate = true;
-    }
   }
 
   /**
@@ -385,8 +311,8 @@ export class Map3D {
    */
   _buildAuxSystem() {
     // 三维坐标轴
-    // let axisHelper = new THREE.AxesHelper(100);
-    // this.scene.add(axisHelper);
+    let axisHelper = new THREE.AxesHelper(100);
+    this.scene.add(axisHelper);
     // 网格
     // const circle = new THREE.PolarGridHelper(1000, 1, 50, 64, 'rgb(80, 89, 136)', 'rgb(80, 89, 136)');
     let grid = new THREE.GridHelper(1000, 100, 'rgb(50, 58, 93)', 'rgb(50, 58, 93)');
